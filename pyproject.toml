@@ -1,0 +1,9 @@
+[project]
+name = "bh_pipeline"
+version = "0.1.0"
+description = "Analysis pipeline for black holes and large-scale structure using NINJA simulations"
+authors = [{ name="Your Name", email="your.email@example.com" }]
+dependencies = ["numpy", "pandas", "astropy", "scipy", "joblib"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
