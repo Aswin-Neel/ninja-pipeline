@@ -1,5 +1,6 @@
 import numpy as np
 from astropy.table import Table
+from scipy.spatial import cKDTree
 
 def compute_virial_radius(mass_hmsun):
     """
@@ -19,25 +20,25 @@ def assign_bh_to_fof(bh_table: Table, fof_table: Table, max_distance_kpc=300):
     Assign each BH to the nearest FOF group within the virial radius.
     Returns a dictionary of BH ID -> assigned FOF Group ID (or None).
     """
+
     bh_pos = np.vstack([bh_table['PositionX'], bh_table['PositionY'], bh_table['PositionZ']]).T
     fof_pos = np.vstack([fof_table['COMPosX'], fof_table['COMPosY'], fof_table['COMPosZ']]).T
-    fof_ids = fof_table['GroupID']
-    fof_mass = fof_table['M_FOF']
+    fof_ids = np.array(fof_table['GroupID'])
+    fof_mass = np.array(fof_table['M_FOF'])
 
     virial_radii = compute_virial_radius(fof_mass)  # in Kpc
+    tree = cKDTree(fof_pos)
+
+    # Batch query: get nearest FOF group for all BHs at once
+    dists, idxs = tree.query(bh_pos, k=1)
 
     assignments = {}
-    for i, bh in enumerate(bh_table):
-        bh_id = bh['ID']
-        bh_xyz = bh_pos[i]
-
-        dists = np.linalg.norm(fof_pos - bh_xyz, axis=1)  # Euclidean
-        within_radius = dists < virial_radii
-
-        if np.any(within_radius):
-            closest_idx = np.argmin(dists[within_radius])
-            valid_ids = fof_ids[within_radius]
-            assignments[bh_id] = valid_ids[closest_idx]
+    bh_ids = np.array(bh_table['ID'])
+    # Vectorized check: is each BH within the virial radius of its nearest FOF group?
+    within_virial = dists < virial_radii[idxs]
+    for i, bh_id in enumerate(bh_ids):
+        if within_virial[i]:
+            assignments[bh_id] = fof_ids[idxs[i]]
         else:
             assignments[bh_id] = None
 
