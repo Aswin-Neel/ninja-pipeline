@@ -1,5 +1,6 @@
 import os
 import glob
+import re
 from astropy.io import fits
 from astropy.table import Table
 
@@ -9,5 +10,13 @@ def load_fits_table(filepath):
 
 def get_redshift_from_filename(filepath):
     base = os.path.basename(filepath)
-    snap_num = int(base.split('_')[-1].split('.')[0])
-    return snap_num
+    match = re.search(r'_z_([0-9.]+)\.fits$', base)
+    if match:
+        return float(match.group(1))
+    return None
+
+def get_snapshot_number(filename):
+    match = re.search(r'_in_snapshot_(\d+)_', filename)
+    if match:
+        return int(match.group(1))
+    return None
