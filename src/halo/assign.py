@@ -4,16 +4,10 @@ from scipy.spatial import cKDTree
 
 def compute_virial_radius(mass_hmsun):
     """
-    Compute the virial radius in Kpc for a halo of mass M (in h^-1 M_sun).
-    Uses the approximation: R_vir ≈ (GM / 100 H^2)^{1/3}
+    Compute the virial radius in kpc for a halo of mass M (in M_sun).
+    Uses the standard scaling: R_vir ≈ 206 * (M / 1e12)^{1/3} kpc
     """
-    G = 4.302e-6  # kpc * (km/s)^2 / M_sun
-    H0 = 70       # km/s/Mpc
-    h = 0.7
-    H = H0 * h    # Simplified approximation
-    M = mass_hmsun / h
-    R = (G * M / (100 * (H**2)))**(1/3)  # in kpc
-    return R
+    return 206 * (np.array(mass_hmsun) / 1e12) ** (1/3)
 
 def assign_bh_to_fof(bh_table: Table, fof_table: Table, max_distance_kpc=300):
     """
