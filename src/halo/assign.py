@@ -11,8 +11,8 @@ def compute_virial_radius(mass_hmsun):
 
 def assign_bh_to_fof(bh_table: Table, fof_table: Table, max_distance_kpc=300):
     """
-    Assign each BH to the nearest FOF group within the virial radius.
-    Returns a dictionary of BH ID -> assigned FOF Group ID (or None).
+    Assign each BH to the nearest FOF group and return distances.
+    Returns a dictionary of BH ID -> (assigned FOF Group ID, distance in kpc, distance in virial radii).
     """
 
     bh_pos = np.vstack([bh_table['PositionX'], bh_table['PositionY'], bh_table['PositionZ']]).T
@@ -20,7 +20,9 @@ def assign_bh_to_fof(bh_table: Table, fof_table: Table, max_distance_kpc=300):
     fof_ids = np.array(fof_table['GroupID'])
     fof_mass = np.array(fof_table['M_FOF'])
 
-    virial_radii = compute_virial_radius(fof_mass)  # in Kpc
+    # Compute virial radii for all FOF groups
+    virial_radii = compute_virial_radius(fof_mass)
+    
     tree = cKDTree(fof_pos)
 
     # Batch query: get nearest FOF group for all BHs at once
@@ -28,12 +30,11 @@ def assign_bh_to_fof(bh_table: Table, fof_table: Table, max_distance_kpc=300):
 
     assignments = {}
     bh_ids = np.array(bh_table['ID'])
-    # Vectorized check: is each BH within the virial radius of its nearest FOF group?
-    within_virial = dists < virial_radii[idxs]
+    # Assign each BH to its nearest FOF group and store both distances
     for i, bh_id in enumerate(bh_ids):
-        if within_virial[i]:
-            assignments[bh_id] = fof_ids[idxs[i]]
-        else:
-            assignments[bh_id] = None
+        fof_idx = idxs[i]
+        distance_kpc = dists[i]
+        distance_virial = distance_kpc / virial_radii[fof_idx]
+        assignments[bh_id] = (fof_ids[fof_idx], distance_kpc, distance_virial)
 
     return assignments
